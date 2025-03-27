@@ -1,0 +1,13 @@
+1- Após criar a EC2, envie o diretório "configEC2" por meio do comando scp
+scp -i chave-pem -r nome-diretorio user@ip:~/
+
+2 - Rode o script install.sh com o comando sh e siga os passos
+comando: bash install.sh
+
+3 - Rode o comando sqlScript.sh com o comando sh e siga os passos
+comando: bash sqlScript.sh
+
+4 - Rode o script user.sh após colocar tudo o que deseja na pasta que foi criada e insira o nome da pasta assim que o script solicitar.
+comando: sh user.sh
+
+5 - Agora o ambiente está configurado, aproveite a sua EC2 configurada com pip3, mysql-connector, psutil e porta MySQL liberada para acessar por meio de endereço ipv4.
