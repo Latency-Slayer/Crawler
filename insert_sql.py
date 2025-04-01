@@ -42,7 +42,7 @@ getGpus = GPUtil.getGPUs()
 contador = 0
 
 while True:
-    cpuPercent = psutil.cpu_percent(interval=0)
+    cpuPercent = psutil.cpu_percent(interval=1)
     cpuFreq = psutil.cpu_freq().current
     
     memoriaUsadoBytes = int(psutil.virtual_memory().used) # Convertendo Bytes para MegaBytes
