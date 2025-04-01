@@ -8,7 +8,7 @@ import platform
 mydb = mysql.connector.connect(
     host="localhost",
     user="root",
-    password="",
+    password="Gui#2020",
     database="captura"
 )
 
@@ -42,7 +42,7 @@ getGpus = GPUtil.getGPUs()
 contador = 0
 
 while True:
-    cpuPercent = psutil.cpu_percent(interval=1)
+    cpuPercent = psutil.cpu_percent(interval=0)
     cpuFreq = psutil.cpu_freq().current
     
     memoriaUsadoBytes = int(psutil.virtual_memory().used) # Convertendo Bytes para MegaBytes
