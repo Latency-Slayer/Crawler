@@ -42,7 +42,7 @@ getGpus = GPUtil.getGPUs()
 contador = 0
 
 while True:
-    cpuPercent = psutil.cpu_percent(interval=1)
+    cpuPercent = psutil.cpu_percent(interval=0)
     cpuFreq = psutil.cpu_freq().current
     
     memoriaUsadoBytes = int(psutil.virtual_memory().used) # Convertendo Bytes para MegaBytes
@@ -54,7 +54,7 @@ while True:
     redeRecebida = round(psutil.net_io_counters().bytes_recv/(1024 ** 2), 2)
     redeEnviada = round(psutil.net_io_counters().bytes_sent/(1024 ** 2), 2)
 
-    sql = "INSERT INTO captura_dados (cpuPercent, cpuFreq, ramPercent, ramBytes, discoPercent, discoBytes, downloadMbps, uploadMbps) VALUES (%s, %s, %s,%s,%s, %s, %s,%s)"
+    sql = "INSERT INTO captura_dados2 (cpuPercent, cpuFreq, ramPercent, ramBytes, discoPercent, discoBytes, downloadMbps, uploadMbps) VALUES (%s, %s, %s,%s,%s, %s, %s,%s)"
     valores = (cpuPercent,cpuFreq,memoriaUsadoPercent,memoriaUsadoBytes, discoUsadoPercent,discoUsadoBytes,redeRecebida,redeEnviada)
 
 
