@@ -3,7 +3,7 @@ from os import cpu_count
 import psutil
 import platform
 import subprocess
-import requests
+# import requests
 import json
 
 
@@ -14,16 +14,20 @@ def init():
     motherboard_id = get_motherboard_id()
     cpu_cores = psutil.cpu_count(logical=False)
     cpu_threads = psutil.cpu_count()
-    ram = {
-        "total": psutil.virtual_memory().total,
-        "type": "ram",
+    total_ram = psutil.virtual_memory().total
+    disks = psutil.disk_partitions()
 
-    }
+    for disk in disks:
+        device = disk.device
+        usage = psutil.disk_usage(device)
+        
 
 
-    teste = json.loads(ram)
 
-    print(teste)
+
+
+
+    # print(teste)
 
 
 def get_motherboard_id():
