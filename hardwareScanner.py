@@ -2,6 +2,8 @@ import psutil
 import platform
 import subprocess
 import requests
+import re
+import json
 
 class Json:
     def __init__(self):
@@ -11,7 +13,6 @@ class Json:
         self.json[key] = value
 
     def __str__(self):
-        import json
         return json.dumps(self.json, ensure_ascii=False, indent=4)
 
 
@@ -27,16 +28,14 @@ def init():
     print("\n🔍 \033[1;33mIniciando verificação de Hardware...\033[0m\n")
 
     motherboard_id = get_motherboard_id()
-    cpu_cores = psutil.cpu_count(logical=False)
-    cpu_threads = psutil.cpu_count()
-    total_ram = psutil.virtual_memory().total
 
     tag_name = get_tag_name()
     server_type = get_server_type()
     so = platform.system()
     location = get_server_location()
-    city = location["countryCode"]
-    country = location["city"]
+    city = location["city"]
+    country = location["countryCode"]
+    # components = get_components()
 
     server_json.append("motherboard_id", motherboard_id)
     server_json.append("tag_name", tag_name)
@@ -123,19 +122,85 @@ def get_server_location():
 
 def get_instance_id():
     instance_id = input("☁️ Digite o ID da instância em nuvem (opcional): ")
-    return instance_id
+    return instance_id or None
+
+
+
+def get_components ():
+    components_json = Json()
+
+    get_disk_data()
+
 
 
 def get_disk_data():
-    print("\n💾 \033[1;35mInformações dos Discos:\033[0m")
-    disks = psutil.disk_partitions()
+    try:
+        print("\n💾 \033[1;35m🔍 Coletando Informações dos Discos...\033[0m\n")
+        disks = psutil.disk_partitions()
 
-    for disk in disks:
-        device = disk.device
-        if device == "F:\\":
-            continue
+        disks_json = []
 
-        usage = psutil.disk_usage(device)
-        print(f"📁 Disco {device} - Usado: {usage.percent}%")
+        for disk in disks:
+            device = disk.device
+            print(f"\033[1;36m📁 Partição Detectada:\033[0m {device}")
+            usage = psutil.disk_usage(device)
+
+            print(f"\033[1;34m⚙️  Configurando limites para o disco {device}:\033[0m")
+
+            while True:
+                try:
+                    max_limit = get_number_in_str(input("   📊 Limite MÁXIMO de uso (%): "))
+                    min_limit = get_number_in_str(input("   📉 Limite MÍNIMO de uso (%): "))
+
+                    if max_limit != 0 and max_limit <= 100 and min_limit <= 100:
+                        break
+
+                    print("❌ Entrada inválida! Tente novamente. O limite máximo não pode ser zero ou nulo e deve estar entre 1% e 100%. \n ")
+                except:
+                    print("❌ Entrada inválida! Tente novamente.\n")
+
+            total_gb = usage.total / 1024 ** 3
+
+            disks_json.append({
+                "tag_name": device,
+                "type": "storage",
+                "metrics": [
+                    {
+                        "metric": "%",
+                        "max_limit": max_limit or None,
+                        "min_limit": min_limit or None,
+                        "total": 100
+                    },
+                    {
+                        "metric": "gb",
+                        "max_limit": round(total_gb * (max_limit / 100), 2) if max_limit else None,
+                        "min_limit": round(total_gb * (min_limit / 100), 2) if min_limit else None,
+                        "total": round(total_gb, 2)
+                    }
+                ]
+            })
+
+            print(f"\n\033[1;32m✅ Limites configurados com sucesso para {device}!\033[0m\n")
+
+        print("\n📦 \033[1;33mResumo JSON Final:\033[0m")
+        print(json.dumps(disks_json, indent=4))
+
+    except Exception as e:
+        print(f"\n\033[1;31m❗ Erro ao coletar dados dos discos:\033[0m {e}")
+
+    except Exception as e:
+        print(e)
+
+
+
+def get_number_in_str(str: str):
+    if str == "":
+        return 0
+
+    str = re.sub(r'[^0-9]', '', str)
+
+    return round(float(str), 2)
+
+
 
 init()
