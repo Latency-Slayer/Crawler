@@ -35,7 +35,6 @@ def init():
     location = get_server_location()
     city = location["city"]
     country = location["countryCode"]
-    # components = get_components()
 
     server_json.append("motherboard_id", motherboard_id)
     server_json.append("tag_name", tag_name)
@@ -47,6 +46,8 @@ def init():
 
     print("\n📦 \033[1;32mResumo da Configuração do Servidor:\033[0m")
     print(server_json)
+
+    components = get_components()
 
 
 def get_motherboard_id():
@@ -72,8 +73,15 @@ def get_auth_data():
     print("🔐 \033[1;35mAutenticação do Usuário\033[0m")
     print("ℹ️  Os dados informados serão enviados ao servidor para validação.")
     print("⚠️  A verificação não é feita em tempo real. Caso haja algum erro nas credenciais, você será notificado ao final do processo.\n")
-    email = input("📧 Digite seu e-mail: ")
-    password = input("🔑 Digite sua senha: ")
+
+    while True:
+        email = input("📧 Digite seu e-mail: ")
+        password = input("🔑 Digite sua senha: ")
+
+        if email != "" or password != "":
+            break
+
+        print("O e-mail e a senha não podem ser vázios.")
 
     return {
         "email": email,
@@ -113,8 +121,18 @@ def get_server_location():
     try:
         ip = requests.get('https://api.ipify.org').text
         location = requests.get(f"http://ip-api.com/json/{ip}")
-    except subprocess.SubprocessError:
-        exit("\033[1;31m❌ Falha ao obter localização.\033[0m")
+    except Exception:
+        print("\033[1;31m❌ Falha ao obter localização com baseado no IP do servidor.\033[0m")
+
+        country = input("Digite o código do país onde o servidor está localizado ('BR', 'US', 'UK'...): ")
+        city = input("Digite o nome da cidade onde o servidor está localizado ('São Paulo', 'Sidney', 'Lisboa')...")
+
+        location = {}
+
+        location["countryCode"] = country.upper()
+        location["city"] = city
+
+        return location
 
     print(f"🌐 IP Detectado: \033[1;36m{ip}\033[0m")
     return location.json()
@@ -129,8 +147,29 @@ def get_instance_id():
 def get_components ():
     components_json = Json()
 
-    get_disk_data()
+    print("\n \033[1;34mIniciando configuração de componentes, em caso de dúvidas consulte nosso manual...\033[0m")
 
+    data_disk = get_disk_data()
+
+    components_json.append("components", data_disk)
+
+    print(components_json)
+
+
+def get_cpu_data():
+    try:
+        print("Coletando informações do processador...")
+
+        windows_sh = ["powershell", "-Command", "(Get-ComputerInfo).CsProcessors[0].name"]
+        linux_sh = "cat /proc/cpuinfo | grep 'model name' | uniq"
+
+        sh = windows_sh if platform.system() == "Windows" else linux_sh
+
+        cpu_name = subprocess.check_output(sh, shell=True).decode().strip()
+
+        print(cpu_name)
+    except:
+        print("")
 
 
 def get_disk_data():
@@ -173,17 +212,16 @@ def get_disk_data():
                     },
                     {
                         "metric": "gb",
-                        "max_limit": round(total_gb * (max_limit / 100), 2) if max_limit else None,
-                        "min_limit": round(total_gb * (min_limit / 100), 2) if min_limit else None,
-                        "total": round(total_gb, 2)
+                        "max_limit": round(total_gb * (max_limit / 100), 0) if max_limit else None,
+                        "min_limit": round(total_gb * (min_limit / 100), 0) if min_limit else None,
+                        "total": round(total_gb, 0)
                     }
                 ]
             })
 
             print(f"\n\033[1;32m✅ Limites configurados com sucesso para {device}!\033[0m\n")
 
-        print("\n📦 \033[1;33mResumo JSON Final:\033[0m")
-        print(json.dumps(disks_json, indent=4))
+        return disks_json
 
     except Exception as e:
         print(f"\n\033[1;31m❗ Erro ao coletar dados dos discos:\033[0m {e}")
@@ -203,4 +241,5 @@ def get_number_in_str(str: str):
 
 
 
-init()
+# init()
+get_cpu_data()
