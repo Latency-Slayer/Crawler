@@ -158,18 +158,124 @@ def get_components ():
 
 def get_cpu_data():
     try:
-        print("Coletando informações do processador...")
+        print("\n💾 \033[1;35m🔍 Coletando Informações dos processadores...\033[0m\n")
 
         windows_sh = ["powershell", "-Command", "(Get-ComputerInfo).CsProcessors[0].name"]
-        linux_sh = "cat /proc/cpuinfo | grep 'model name' | uniq"
+        linux_sh = "cat /proc/cpuinfo | grep 'model name' | uniq | cut -d ':' -f2-"
 
         sh = windows_sh if platform.system() == "Windows" else linux_sh
 
         cpu_name = subprocess.check_output(sh, shell=True).decode().strip()
 
-        print(cpu_name)
+        print(f"\033[1;36m🧠 Processador Detectado:\033[0m {cpu_name}")
+
+        while True:
+            try:
+                max_limit_use = get_number_in_str(input("   📊 Limite MÁXIMO de uso (%): "))
+                min_limit_use = get_number_in_str(input("   📉 Limite MÍNIMO de uso (%): "))
+
+                if max_limit_use != 0 and max_limit_use <= 100 and min_limit_use <= 100:
+                    break
+
+                print("❌ Entrada inválida! Tente novamente. O limite máximo não pode ser zero ou nulo e deve estar entre 1% e 100%. \n ")
+            except:
+                print("❌ Entrada inválida! Tente novamente.\n")
+
+
+        while True:
+            try:
+                max_limit_temperature = get_number_in_str(input("   📊 Limite MÁXIMO de uso (C°): "))
+                min_limit_temperature = get_number_in_str(input("   📉 Limite MÍNIMO de uso (C°): "))
+
+                if max_limit_temperature > 0:
+                    break
+
+                print("❌ Entrada inválida! Tente novamente. O limite máximo não pode ser zero ou nulo e deve estar entre 1% e 100%. \n ")
+            except:
+                print("❌ Entrada inválida! Tente novamente.\n")
+
+
+        print(f"\n\033[1;32m✅ Limites configurados com sucesso para {cpu_name}!\033[0m\n")
+
+
+        return {
+            "tag_name": cpu_name,
+            "type": "cpu",
+            "metrics": [
+                {
+                    "metric": "%",
+                    "max_limit": max_limit_use or None,
+                    "min_limit": min_limit_use or None,
+                    "total": 100
+                },
+                {
+                    "metric": "celsius",
+                    "max_limit":  max_limit_temperature or None,
+                    "min_limit": min_limit_temperature or None,
+                    "total": 0
+                }
+            ]
+        }
     except:
-        print("")
+        print(f"\n\033[1;31m❗ Erro ao coletar dados do processador:\033[0m {e}")
+
+
+def get_ram_data():
+    try:
+        print("\n💾 \033[1;35m🔍 Coletando Informações da memória...\033[0m\n")
+        ram = psutil.virtual_memory().total
+        swap = psutil.swap_memory().total
+
+        memory_json = []
+
+        print(f"\033[1;36m Memória Detectada:\033[0m {device}")
+        print(f"Memória RAM: {ram}")
+        print(f"Memória SWAP: {swap}")
+
+        print(f"\033[1;34m⚙️  Configurando limites para o disco memória RAM:\033[0m")
+
+        while True:
+            try:
+                max_limit = get_number_in_str(input("   📊 Limite MÁXIMO de uso (%): "))
+                min_limit = get_number_in_str(input("   📉 Limite MÍNIMO de uso (%): "))
+
+                if max_limit != 0 and max_limit <= 100 and min_limit <= 100:
+                    break
+
+                print("❌ Entrada inválida! Tente novamente. O limite máximo não pode ser zero ou nulo e deve estar entre 1% e 100%. \n ")
+            except:
+                print("❌ Entrada inválida! Tente novamente.\n")
+
+        total_gb = usage.total / 1024 ** 3
+
+        disks_json.append({
+            "tag_name": device,
+            "type": "storage",
+            "metrics": [
+                {
+                    "metric": "%",
+                    "max_limit": max_limit or None,
+                    "min_limit": min_limit or None,
+                    "total": 100
+                },
+                {
+                    "metric": "gb",
+                    "max_limit": round(total_gb * (max_limit / 100), 0) if max_limit else None,
+                    "min_limit": round(total_gb * (min_limit / 100), 0) if min_limit else None,
+                    "total": round(total_gb, 0)
+                }
+            ]
+        })
+
+        print(f"\n\033[1;32m✅ Limites configurados com sucesso para {device}!\033[0m\n")
+
+        return disks_json
+
+    except Exception as e:
+        print(f"\n\033[1;31m❗ Erro ao coletar dados dos discos:\033[0m {e}")
+
+    except Exception as e:
+        print(e)
 
 
 def get_disk_data():
@@ -238,7 +344,6 @@ def get_number_in_str(str: str):
     str = re.sub(r'[^0-9]', '', str)
 
     return round(float(str), 2)
-
 
 
 # init()
