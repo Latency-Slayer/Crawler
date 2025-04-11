@@ -35,6 +35,7 @@ def init():
     location = get_server_location()
     city = location["city"]
     country = location["countryCode"]
+    components = get_components()
 
     server_json.append("motherboard_id", motherboard_id)
     server_json.append("tag_name", tag_name)
@@ -44,10 +45,10 @@ def init():
     server_json.append("city", city)
     server_json.append("country_code", country)
 
+    server_json.append("components", components)
+
     print("\n📦 \033[1;32mResumo da Configuração do Servidor:\033[0m")
     print(server_json)
-
-    components = get_components()
 
 
 def get_motherboard_id():
@@ -135,6 +136,11 @@ def get_server_location():
         return location
 
     print(f"🌐 IP Detectado: \033[1;36m{ip}\033[0m")
+    print("🌍 Localização")
+    print("──────────────")
+    print(f"📍 Cidade : {location.json()["city"]}")
+    print(f"🏳️ País   : {location.json()["countryCode"]}")
+    
     return location.json()
 
 
@@ -145,20 +151,24 @@ def get_instance_id():
 
 
 def get_components ():
-    components_json = Json()
+    components_json = []
 
     print("\n \033[1;34mIniciando configuração de componentes, em caso de dúvidas consulte nosso manual...\033[0m")
 
-    data_disk = get_disk_data()
+    components_json.append(get_cpu_data())
+    components_json.append(get_ram_data())
 
-    components_json.append("components", data_disk)
+    disks = get_disk_data()
 
-    print(components_json)
+    for disk in disks:
+        components_json.append(disk)
+
+    return components_json
 
 
 def get_cpu_data():
     try:
-        print("\n💾 \033[1;35m🔍 Coletando Informações dos processadores...\033[0m\n")
+        print("\n💾 \033[1;35m🔍 Coletando Informações do processador...\033[0m\n")
 
         windows_sh = ["powershell", "-Command", "(Get-ComputerInfo).CsProcessors[0].name"]
         linux_sh = "cat /proc/cpuinfo | grep 'model name' | uniq | cut -d ':' -f2-"
@@ -173,6 +183,7 @@ def get_cpu_data():
             try:
                 max_limit_use = get_number_in_str(input("   📊 Limite MÁXIMO de uso (%): "))
                 min_limit_use = get_number_in_str(input("   📉 Limite MÍNIMO de uso (%): "))
+                print("\n")
 
                 if max_limit_use != 0 and max_limit_use <= 100 and min_limit_use <= 100:
                     break
@@ -204,13 +215,13 @@ def get_cpu_data():
             "metrics": [
                 {
                     "metric": "%",
-                    "max_limit": max_limit_use or None,
+                    "max_limit": max_limit_use,
                     "min_limit": min_limit_use or None,
                     "total": 100
                 },
                 {
                     "metric": "celsius",
-                    "max_limit":  max_limit_temperature or None,
+                    "max_limit":  max_limit_temperature,
                     "min_limit": min_limit_temperature or None,
                     "total": 0
                 }
@@ -222,15 +233,29 @@ def get_cpu_data():
 
 def get_ram_data():
     try:
+        memory_type = subprocess.check_output(["powershell", "-command", """
+            switch ((Get-CimInstance -ClassName Win32_PhysicalMemory | Select-Object -First 1).SMBIOSMemoryType) {
+                20 { "DDR" }
+                21 { "DDR2" }
+                22 { "DDR2 FB-DIMM" }
+                24 { "DDR3" }
+                26 { "DDR4" }
+                27 { "DDR5" }
+                Default { "Tipo desconhecido" }
+            }"""]).decode().strip() or "RAM"
+    except:
+        print("Erro ao coletar tipo de memória...")
+
+
+    try:
         print("\n💾 \033[1;35m🔍 Coletando Informações da memória...\033[0m\n")
-        ram = psutil.virtual_memory().total
-        swap = psutil.swap_memory().total
+        ram = psutil.virtual_memory()
 
-        memory_json = []
+        total_gb = ram.total / 1024 ** 3
 
-        print(f"\033[1;36m Memória Detectada:\033[0m {device}")
-        print(f"Memória RAM: {ram}")
-        print(f"Memória SWAP: {swap}")
+
+        print(f"\033[1;36m Memória Detectada:\033[0m {memory_type}")
+        print(f"Memória RAM: {total_gb:.2f} GB")
 
         print(f"\033[1;34m⚙️  Configurando limites para o disco memória RAM:\033[0m")
 
@@ -246,30 +271,30 @@ def get_ram_data():
             except:
                 print("❌ Entrada inválida! Tente novamente.\n")
 
-        total_gb = usage.total / 1024 ** 3
 
-        disks_json.append({
-            "tag_name": device,
-            "type": "storage",
+
+        memory_json = {
+            "tag_name": memory_type,
+            "type": "ram",
             "metrics": [
                 {
                     "metric": "%",
-                    "max_limit": max_limit or None,
+                    "max_limit": max_limit,
                     "min_limit": min_limit or None,
                     "total": 100
                 },
                 {
                     "metric": "gb",
-                    "max_limit": round(total_gb * (max_limit / 100), 0) if max_limit else None,
-                    "min_limit": round(total_gb * (min_limit / 100), 0) if min_limit else None,
-                    "total": round(total_gb, 0)
+                    "max_limit": round(total_gb * (max_limit / 100), 2),
+                    "min_limit": round(total_gb * (min_limit / 100), 2) if min_limit else None,
+                    "total": round(total_gb, 2)
                 }
             ]
-        })
+        }
 
-        print(f"\n\033[1;32m✅ Limites configurados com sucesso para {device}!\033[0m\n")
+        print(f"\n\033[1;32m✅ Limites configurados com sucesso para memória RAM!\033[0m\n")
 
-        return disks_json
+        return memory_json
 
     except Exception as e:
         print(f"\n\033[1;31m❗ Erro ao coletar dados dos discos:\033[0m {e}")
@@ -312,7 +337,7 @@ def get_disk_data():
                 "metrics": [
                     {
                         "metric": "%",
-                        "max_limit": max_limit or None,
+                        "max_limit": max_limit,
                         "min_limit": min_limit or None,
                         "total": 100
                     },
@@ -346,5 +371,4 @@ def get_number_in_str(str: str):
     return round(float(str), 2)
 
 
-# init()
-get_cpu_data()
+init()
