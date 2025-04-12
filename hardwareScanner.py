@@ -41,14 +41,21 @@ def init():
     server_json.append("tag_name", tag_name)
     server_json.append("type", server_type["type"])
     server_json.append("instance_id", server_type["instance_id"])
-    server_json.append("so", so)
+    server_json.append("so", so.lower())
     server_json.append("city", city)
     server_json.append("country_code", country)
 
     server_json.append("components", components)
 
-    print("\n📦 \033[1;32mResumo da Configuração do Servidor:\033[0m")
-    print(server_json)
+    try:
+        request = requests.post("http://localhost:3333/server/register", json=server_json.json)
+
+        if request.status_code != 201:
+            raise ValueError(request.json())
+
+        print("\n📦 \033[1;32mServidor cadastrado com sucesso!:\033[0m")
+    except Exception as e:
+        print(f"\033[91m[✘ ERRO] Falha ao enviar dados para o servidor: {e}\033[0m")
 
 
 def get_motherboard_id():
@@ -227,7 +234,7 @@ def get_cpu_data():
                 }
             ]
         }
-    except:
+    except Exception as e:
         print(f"\n\033[1;31m❗ Erro ao coletar dados do processador:\033[0m {e}")
 
 
@@ -299,9 +306,6 @@ def get_ram_data():
     except Exception as e:
         print(f"\n\033[1;31m❗ Erro ao coletar dados dos discos:\033[0m {e}")
 
-    except Exception as e:
-        print(e)
-
 
 def get_disk_data():
     try:
@@ -313,7 +317,12 @@ def get_disk_data():
         for disk in disks:
             device = disk.device
             print(f"\033[1;36m📁 Partição Detectada:\033[0m {device}")
-            usage = psutil.disk_usage(device)
+
+            try:
+                usage = psutil.disk_usage(device)
+            except:
+                print(f"\033[91m[✘] Erro ao coletar informações da partição: {device}\033[0m")
+                continue
 
             print(f"\033[1;34m⚙️  Configurando limites para o disco {device}:\033[0m")
 
@@ -356,9 +365,6 @@ def get_disk_data():
 
     except Exception as e:
         print(f"\n\033[1;31m❗ Erro ao coletar dados dos discos:\033[0m {e}")
-
-    except Exception as e:
-        print(e)
 
 
 
