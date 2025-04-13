@@ -86,10 +86,15 @@ def get_auth_data():
         email = input("📧 Digite seu e-mail: ")
         password = input("🔑 Digite sua senha: ")
 
-        if email != "" or password != "":
+        auth = requests.post("http://localhost:3333/usuarios/login", json={
+            "loginEmailServer": email,
+            "loginPasswordServer": password
+        })
+
+        if auth.status_code == 200:
             break
 
-        print("O e-mail e a senha não podem ser vázios.")
+        print("Email ou senha incorretos... Tente novamente.")
 
     return {
         "email": email,
